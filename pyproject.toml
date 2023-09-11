@@ -9,6 +9,11 @@ packages = [{include = "bot_pdf"}]
 [tool.poetry.dependencies]
 python = "^3.10"
 python-telegram-bot = "^20.5"
+langchain = "^0.0.285"
+pypdf = "^3.16.0"
+chromadb = "^0.4.9"
+openai = "^0.28.0"
+tiktoken = "^0.4.0"
 
 
 [build-system]
