@@ -22,7 +22,7 @@ warnings.filterwarnings('default')
 
 
 
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = "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"
 
 class ChatWithPDF():
     def __init__(self, filename, api_key, message_limit=1200):
