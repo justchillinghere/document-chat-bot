@@ -1,67 +1,58 @@
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' #TO SURPRESS Tensorflow warnings
-
-
 import warnings
-warnings.filterwarnings('ignore')
-
-from langchain.document_loaders import PyPDFLoader 
-from langchain.embeddings import OpenAIEmbeddings 
-from langchain.vectorstores import Chroma 
+from langchain.document_loaders import PyPDFLoader
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.vectorstores import Chroma
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 from langchain.llms import OpenAI
 from langchain.vectorstores import DocArrayInMemorySearch
 from langchain.document_loaders import PDFMinerLoader
 from langchain.chains import RetrievalQA
-
 from langchain.indexes import VectorstoreIndexCreator
+from config_reader import config
 
-warnings.filterwarnings('default')
+warnings.filterwarnings("ignore")
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # TO SURPRESS Tensorflow warnings
+warnings.filterwarnings("default")
+
+OPENAI_API_KEY = config.openai_api_key.get_secret_value()
 
 
-
-
-OPENAI_API_KEY = "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"
-
-class ChatWithPDF():
+class ChatWithPDF:
     def __init__(self, filename, api_key, message_limit=1200):
-        
-        #record history of dialog        
+        # record history of dialog
         self.filename = filename
         self.message_limit = message_limit
-        
-        #initialize models
-        self.llm = OpenAI(temperature=0.2,openai_api_key=api_key)
+
+        # initialize models
+        self.llm = OpenAI(temperature=0.2, openai_api_key=api_key)
         self.embeddings = OpenAIEmbeddings(openai_api_key=api_key)
-        
-    
+
     def memorize_content(self):
-        
-        #read file chunk by chunk
+        # read file chunk by chunk
         self.chunks = PyPDFLoader(self.filename).load_and_split()
         print(f"The file <{self.filename}> has been read")
-        
-        #write embeddings of chunks to vecDb
-        self.vec_database = DocArrayInMemorySearch.from_documents(self.chunks, self.embeddings)
-        print("The file has been recorded to vec db")
-        
-        #set up extractor from this vec database
-        self.retriever = self.vec_database.as_retriever()
-        
-        self.memory = ConversationBufferMemory(return_messages=True, 
-                                               memory_key="chat_history",
-                                               )
-        
-        self.conversation = ConversationalRetrievalChain.from_llm(llm=self.llm,
-                                                                  memory=self.memory,
-                                                                  retriever=self.retriever)
 
-    
+        # write embeddings of chunks to vecDb
+        self.vec_database = DocArrayInMemorySearch.from_documents(
+            self.chunks, self.embeddings
+        )
+        print("The file has been recorded to vec db")
+
+        # set up extractor from this vec database
+        self.retriever = self.vec_database.as_retriever()
+
+        self.memory = ConversationBufferMemory(
+            return_messages=True,
+            memory_key="chat_history",
+        )
+
+        self.conversation = ConversationalRetrievalChain.from_llm(
+            llm=self.llm, memory=self.memory, retriever=self.retriever
+        )
+
     def ask_question(self, question_text):
-        
-        
-        
         promt = f"""You need to answer the question related to the text you have just read
                             here's some notes you should follow:
                             Before saying that you don't know, do your best to come up with an answer.
@@ -76,27 +67,19 @@ class ChatWithPDF():
                             So, here's the question you need to answer:
                             {question_text}
                             """
-        
-        
-        reply = self.conversation({"question" : promt})["answer"]
-                
+
+        reply = self.conversation({"question": promt})["answer"]
+
         return reply
 
-class Dialog():
+
+class Dialog:
     def __init__(self, name_of_doc):
-        
-        #initialize chat
+        # initialize chat
         self.chat = ChatWithPDF(name_of_doc, api_key=OPENAI_API_KEY)
         self.chat.memorize_content()
 
-    
     def ask(self, query):
+        reply = self.chat.ask_question(query)
 
-        reply  = self.chat.ask_question(query)
-
-        return (reply)
-
-
-
-
-
+        return reply

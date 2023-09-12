@@ -3,14 +3,17 @@ from telegram.ext import Updater, CommandHandler
 from start_command import start
 from question_command import question
 from add_file_command import add_file
+from config_reader import config
+
+BOT_TOKEN = config.bot_token.get_secret_value()
 
 
 def main():
     # Create the bot and get the token from BotFather
-    bot = telegram.Bot(token="YOUR_BOT_TOKEN")
+    bot = telegram.Bot(token=BOT_TOKEN)
 
     # Create the updater and pass the bot token
-    updater = Updater(token="YOUR_BOT_TOKEN", use_context=True)
+    updater = Updater(token=BOT_TOKEN, use_context=True)
 
     # Get the dispatcher to register handlers
     dispatcher = updater.dispatcher
