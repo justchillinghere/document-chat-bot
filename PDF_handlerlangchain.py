@@ -14,10 +14,8 @@ from config_reader import config
 
 warnings.filterwarnings("ignore")
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # TO SURPRESS Tensorflow warnings
-warnings.filterwarnings("default")
 
 OPENAI_API_KEY = config.openai_api_key.get_secret_value()
-
 
 
 class ChatWithPDF:
@@ -32,8 +30,10 @@ class ChatWithPDF:
 
     def memorize_content(self):
         # read file chunk by chunk
-        self.chunks = PyPDFLoader(self.filename).load()
-        print(f"The file <{self.filename}> has been read")
+
+        with open(self.filename, "r"):
+            self.chunks = PyPDFLoader(self.filename).load()
+            print(f"The file <{self.filename}> has been read")
 
 
         token_splitter = TokenTextSplitter(chunk_size=1000,
