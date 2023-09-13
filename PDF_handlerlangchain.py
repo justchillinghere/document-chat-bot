@@ -6,10 +6,10 @@ from langchain.vectorstores import Chroma
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 from langchain.llms import OpenAI
-from langchain.vectorstores import DocArrayInMemorySearch
-from langchain.document_loaders import PDFMinerLoader
 from langchain.chains import RetrievalQA
-from langchain.indexes import VectorstoreIndexCreator
+from langchain.text_splitter import TokenTextSplitter
+from langchain.prompts import PromptTemplate
+
 from config_reader import config
 
 warnings.filterwarnings("ignore")
@@ -17,6 +17,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # TO SURPRESS Tensorflow warnings
 warnings.filterwarnings("default")
 
 OPENAI_API_KEY = config.openai_api_key.get_secret_value()
+
 
 
 class ChatWithPDF:
@@ -31,45 +32,44 @@ class ChatWithPDF:
 
     def memorize_content(self):
         # read file chunk by chunk
-        self.chunks = PyPDFLoader(self.filename).load_and_split()
+        self.chunks = PyPDFLoader(self.filename).load()
         print(f"The file <{self.filename}> has been read")
 
+
+        token_splitter = TokenTextSplitter(chunk_size=1000,
+                                          chunk_overlap=100)
+        
+        self.chunks = token_splitter.split_documents(self.chunks) #split by tokens
+
         # write embeddings of chunks to vecDb
-        self.vec_database = DocArrayInMemorySearch.from_documents(
+        self.vec_database = Chroma.from_documents(
             self.chunks, self.embeddings
         )
         print("The file has been recorded to vec db")
 
         # set up extractor from this vec database
-        self.retriever = self.vec_database.as_retriever()
+        self.retriever = self.vec_database.as_retriever(search_type="similarity",
+                                                         search_kwargs={"k" : 4})
 
-        self.memory = ConversationBufferMemory(
-            return_messages=True,
-            memory_key="chat_history",
-        )
 
-        self.conversation = ConversationalRetrievalChain.from_llm(
-            llm=self.llm, memory=self.memory, retriever=self.retriever
-        )
+        template = """Use this information in order to answer the question. 
+                Context: {context}
+                Question: {question}
+                Your answer must be complete and consistent.
+              Your answer must contain at least 100 words"""
+
+
+        QA_PROMPT = PromptTemplate.from_template(template)
+
+        self.qa_chain = RetrievalQA.from_chain_type(
+                            self.llm,
+                            retriever=self.retriever,
+                            chain_type_kwargs={"prompt": QA_PROMPT},
+                            verbose=False
+                        )
 
     def ask_question(self, question_text):
-        promt = f"""You need to answer the question related to the text you have just read
-                            here's some notes you should follow:
-                            Before saying that you don't know, do your best to come up with an answer.
-                            People hate AI that cant answer their questions!
-
-                            If the question is not related to our text then don't use that text in your answers
-                            
-                            1) be honest, if you don't know just truthfully say so
-                            2) Your reply is limited by 200 words
-                            3) Your text should be well structered and has some reasoning points
-                            
-                            So, here's the question you need to answer:
-                            {question_text}
-                            """
-
-        reply = self.conversation({"question": promt})["answer"]
-
+        reply = self.qa_chain({"query" : question_text})
         return reply
 
 
@@ -82,4 +82,4 @@ class Dialog:
     def ask(self, query):
         reply = self.chat.ask_question(query)
 
-        return reply
+        return reply["result"]
