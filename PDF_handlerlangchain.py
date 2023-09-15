@@ -1,5 +1,6 @@
 import os
 import warnings
+from dotenv import load_dotenv
 from langchain.document_loaders import PyPDFLoader
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
@@ -10,13 +11,14 @@ from langchain.vectorstores import DocArrayInMemorySearch
 from langchain.document_loaders import PDFMinerLoader
 from langchain.chains import RetrievalQA
 from langchain.indexes import VectorstoreIndexCreator
-from config_reader import config
+
+load_dotenv()
 
 warnings.filterwarnings("ignore")
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # TO SURPRESS Tensorflow warnings
 warnings.filterwarnings("default")
 
-OPENAI_API_KEY = config.openai_api_key.get_secret_value()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 
 class ChatWithPDF:
