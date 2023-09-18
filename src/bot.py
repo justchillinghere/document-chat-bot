@@ -20,10 +20,6 @@ from error_handler import error_handler
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
-)
-
 
 def main():
     # Create the bot and get the token from BotFather
@@ -39,11 +35,12 @@ def main():
     application.add_handler(question_handler)
 
     # Register the add_file command handler
-    add_file_handler = CommandHandler("file", add_file)
+    add_file_handler = MessageHandler(filters.Document.PDF, add_file)
     application.add_handler(add_file_handler)
 
+	
     # on non command i.e message - echo the message on Telegram
-    application.add_handler(MessageHandler(~filters.COMMAND, echo))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
