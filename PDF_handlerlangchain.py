@@ -1,6 +1,7 @@
 import os
 import warnings
 import dotenv
+import chromadb
 from langchain.document_loaders import PyPDFLoader
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
@@ -16,7 +17,9 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # TO SURPRESS Tensorflow warnings
 warnings.filterwarnings("default")
 
 dotenv.load_dotenv()
-openai_api_key = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+vector_db_path = os.getenv("VECTOR_DB_PATH")
+client = chromadb.PersistentClient(path=vector_db_path)
 
 
 class ChatWithPDF:
@@ -39,7 +42,9 @@ class ChatWithPDF:
         self.chunks = token_splitter.split_documents(self.chunks)  # split by tokens
 
         # write embeddings of chunks to vecDb
-        self.vec_database = Chroma.from_documents(self.chunks, self.embeddings)
+        self.vec_database = Chroma.from_documents(
+            self.chunks, self.embeddings, persist_directory=vector_db_path
+        )
         print("The file has been recorded to vec db")
 
         # set up extractor from this vec database

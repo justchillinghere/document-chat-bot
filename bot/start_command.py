@@ -15,6 +15,3 @@ async def start(update, context):
     await context.bot.send_message(
         chat_id=update.effective_chat.id, text="Hello! How can I assist you?"
     )
-
-
-start_handler = CommandHandler("start", start)
