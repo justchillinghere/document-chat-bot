@@ -35,14 +35,14 @@ class ChatWithPDF:
 		self.embeddings = OpenAIEmbeddings(openai_api_key=api_key)
 		self.user_id = user_tg_id
 
-	def load_file(self, filepath: str, file_name: str):
-		self.chunks = PyPDFLoader(filepath).load()
+	def load_file(self, file_path: str, file_name: str):
+		self.chunks = PyPDFLoader(file_path).load()
 
 		# Change filename in metadata from temporary to actual one
 		for i in range(len(self.chunks)):
 			self.chunks[i].metadata['source'] = file_name
 		
-		logger.info(f"Read {file_name} file from {filepath}")
+		logger.info(f"Read {file_name} file from {file_path}")
 
 	def split_docs(self, chunk_size:int=1000, chunk_overlap:int=100):	
 		token_splitter = TokenTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
@@ -58,9 +58,10 @@ class ChatWithPDF:
 		)
 		vec_database.persist()
 		vec_database = None
-		logger.info(f"The {self.file_name} has been recorded to vec db")
+		logger.info(f"The file has been recorded to vec db")
 
 	def get_qa_chain(self):
+		Chroma.get()
 		vec_database = Chroma(
 			embedding_function=self.embeddings,
 			persist_directory=vector_db_path,
@@ -112,14 +113,16 @@ class ChatWithPDF:
 class Dialog:
 	def __init__(self, user_id):
 		# initialize chat
-		self.chat = ChatWithPDF(user_id, OPENAI_API_KEY)
+		self.chat = ChatWithPDF(user_id, api_key=OPENAI_API_KEY)
 
 	def load_document_to_vec_db(self, file_name, file_path):
 		self.chat.load_file(file_path=file_path, file_name=file_name)
 		self.chat.split_docs()
 		self.chat.create_db_collection_langchain()
+		return True
 
 	def ask(self, query):
-		self.chat.create_qa_chain()
+		self.chat.get_qa_chain()
 		reply = self.chat.ask_question(query)
+		logger.info("Question answered")
 		return reply["result"]

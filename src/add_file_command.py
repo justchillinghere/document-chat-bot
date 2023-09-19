@@ -14,8 +14,13 @@ async def add_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> File |
 		return
 	logger.info("Started loading file")
 	file = await context.bot.get_file(update.message.document.file_id)
-	Dialog(
+	await context.bot.send_message(
+        chat_id=update.effective_chat.id, text="Please wait for the file to be uploaded"
+    )
+	Dialog(user_id=update.message.from_user.id).load_document_to_vec_db(
 		file_name=update.message.document.file_name,
-		file_path=file.file_path,
-		user_id=update.message.from_user.id
+		file_path=file.file_path
 		)
+	await context.bot.send_message(
+        chat_id=update.effective_chat.id, text="File has been uploaded successfully!"
+    )
