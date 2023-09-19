@@ -14,6 +14,7 @@ from langchain.chains import RetrievalQA
 from langchain.text_splitter import TokenTextSplitter
 from langchain.prompts import PromptTemplate
 from langchain.docstore.document import Document
+from langchain.prompts import ChatPromptTemplate
 
 from error_handler import logger
 
@@ -31,7 +32,7 @@ class ChatWithPDF:
 		  api_key: str,
 		  message_limit=1200):
 		self.message_limit = message_limit
-		self.llm = OpenAI(temperature=0.2, openai_api_key=api_key)
+		self.llm = OpenAI(temperature=0.2, openai_api_key=api_key, max_tokens=1000)
 		self.embeddings = OpenAIEmbeddings(openai_api_key=api_key)
 		self.user_id = user_tg_id
 
@@ -67,13 +68,16 @@ class ChatWithPDF:
 			collection_name=f'{self.user_id}_collection',
 		)
 		self.retriever = vec_database.as_retriever(
-			search_type="similarity", search_kwargs={"k": 4}
+			search_type="mmr", search_kwargs={"k": 4}
 		)
 		template = """Use this information in order to answer the question. 
 				Context: {context}
 				Question: {question}
-				Your answer must be complete and consistent.
-			  Your answer must contain at least 100 words"""
+
+				Answer in the language used in question.
+				Your answer must also be complete and consistent.
+			  """
+		
 		QA_PROMPT = PromptTemplate.from_template(template)
 
 		self.qa_chain = RetrievalQA.from_chain_type(
@@ -85,6 +89,9 @@ class ChatWithPDF:
 		logger.info("QA chain created")
 		
 	def ask_question(self, question_text):
+
+		#translator_promt = ChatPromptTemplate.from_strings("What language is the following question? : \n {question}")
+
 		reply = self.qa_chain({"query": question_text})
 		return reply
 
@@ -129,8 +136,11 @@ class ManualChatWithPDF(ChatWithPDF):
 		template = """Use this information in order to answer the question. 
 				Context: {context}
 				Question: {question}
-				Your answer must be complete and consistent, but precise.
-			  Your answer must contain not more than 100 words"""
+				Figure out the language in this question 
+				and build your reply in this language
+				Your answer must be complete and consistent.
+			  Your answer must contain at least 100 words"""
+		
 		QA_PROMPT = PromptTemplate.from_template(template)
 
 		self.qa_chain = RetrievalQA.from_chain_type(
