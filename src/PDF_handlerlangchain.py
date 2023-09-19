@@ -28,18 +28,21 @@ vector_db_path = os.getenv("VECTOR_DB_PATH")
 
 class ChatWithPDF:
 	def __init__(self, user_tg_id: int,
-	      file_name: str,
 		  api_key: str,
 		  message_limit=1200):
 		self.message_limit = message_limit
 		self.llm = OpenAI(temperature=0.2, openai_api_key=api_key)
 		self.embeddings = OpenAIEmbeddings(openai_api_key=api_key)
 		self.user_id = user_tg_id
-		self.file_name = file_name
 
-	def load_file(self, filepath: str):
+	def load_file(self, filepath: str, file_name: str):
 		self.chunks = PyPDFLoader(filepath).load()
-		logger.info(f"Read file from <{filepath}>")
+
+		# Change filename in metadata from temporary to actual one
+		for i in range(len(self.chunks)):
+			self.chunks[i].metadata['source'] = file_name
+		
+		logger.info(f"Read {file_name} file from {filepath}")
 
 	def split_docs(self, chunk_size:int=1000, chunk_overlap:int=100):	
 		token_splitter = TokenTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
@@ -47,19 +50,23 @@ class ChatWithPDF:
 		logger.info(f"Split {len(self.chunks)} chunks")
 
 	def create_db_collection_langchain(self):
-		for i in range(len(self.chunks)):
-			self.chunks[i].metadata['source'] = self.file_name
-		
-		self.vec_database = Chroma.from_documents(
+		vec_database = Chroma.from_documents(
 			self.chunks,
 			self.embeddings,
 			persist_directory=vector_db_path,
 			collection_name=f'{self.user_id}_collection',
 		)
+		vec_database.persist()
+		vec_database = None
 		logger.info(f"The {self.file_name} has been recorded to vec db")
 
-	def create_qa_chain(self):
-		self.retriever = self.vec_database.as_retriever(
+	def get_qa_chain(self):
+		vec_database = Chroma(
+			embedding_function=self.embeddings,
+			persist_directory=vector_db_path,
+			collection_name=f'{self.user_id}_collection',
+		)
+		self.retriever = vec_database.as_retriever(
 			search_type="similarity", search_kwargs={"k": 4}
 		)
 		template = """Use this information in order to answer the question. 
@@ -103,18 +110,16 @@ class ChatWithPDF:
 
 
 class Dialog:
-	def __init__(self, file_name, file_path, user_id):
+	def __init__(self, user_id):
 		# initialize chat
-		self.chat = ChatWithPDF(
-			file_name=file_name,
-			user_tg_id=user_id,
-			api_key=OPENAI_API_KEY)
-		self.chat.load_file(file_path)
+		self.chat = ChatWithPDF(user_id, OPENAI_API_KEY)
+
+	def load_document_to_vec_db(self, file_name, file_path):
+		self.chat.load_file(file_path=file_path, file_name=file_name)
 		self.chat.split_docs()
 		self.chat.create_db_collection_langchain()
-		self.chat.create_qa_chain()
 
 	def ask(self, query):
+		self.chat.create_qa_chain()
 		reply = self.chat.ask_question(query)
-
 		return reply["result"]

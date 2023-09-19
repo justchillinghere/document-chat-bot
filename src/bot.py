@@ -11,7 +11,7 @@ from telegram.ext import (
     filters,
 )
 from start_command import start
-from question_command import question
+from ask_command import ask
 from add_file_command import add_file
 from echo_command import echo
 from dotenv import load_dotenv
@@ -31,7 +31,7 @@ def main():
     application.add_handler(start_handler)
 
     # Register the question command handler
-    question_handler = CommandHandler("question", question)
+    question_handler = CommandHandler("ask", ask)
     application.add_handler(question_handler)
 
     # Register the add_file command handler
