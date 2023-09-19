@@ -5,7 +5,7 @@
 1. [Introduction](#introduction)
 2. [Usage](#usage)
 3. [Commands](#commands)
-4. [Example] (#example)
+4. [Example](#example)
 
 ---
 
@@ -28,7 +28,7 @@ Welcome to the Telegram Document Chat bot repository! This bot allows you to upl
 - `/start` - Begins a new conversation and provides instructions.
 - `/ask [Your Question]` - Asks a question about the uploaded PDF document.
 
-### Example of usage
+### Example
 
 
 ![Usage Screenshot](./usage_example.png)
