@@ -11,7 +11,7 @@ from telegram.ext import (
     filters,
 )
 from start_command import start
-from question_command import question
+from ask_command import ask
 from add_file_command import add_file
 from echo_command import echo
 from dotenv import load_dotenv
@@ -19,10 +19,6 @@ from error_handler import error_handler
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
-)
 
 
 def main():
@@ -35,15 +31,16 @@ def main():
     application.add_handler(start_handler)
 
     # Register the question command handler
-    question_handler = CommandHandler("question", question)
+    question_handler = CommandHandler("ask", ask)
     application.add_handler(question_handler)
 
     # Register the add_file command handler
-    add_file_handler = CommandHandler("file", add_file)
+    add_file_handler = MessageHandler(filters.Document.PDF, add_file)
     application.add_handler(add_file_handler)
 
+	
     # on non command i.e message - echo the message on Telegram
-    application.add_handler(MessageHandler(~filters.COMMAND, echo))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
