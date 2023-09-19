@@ -49,7 +49,7 @@ class ChatWithPDF:
 		self.chunks = token_splitter.split_documents(self.chunks)
 		logger.info(f"Split {len(self.chunks)} chunks")
 
-	def create_db_collection_langchain(self):
+	def create_db_collection(self):
 		vec_database = Chroma.from_documents(
 			self.chunks,
 			self.embeddings,
@@ -61,7 +61,6 @@ class ChatWithPDF:
 		logger.info(f"The file has been recorded to vec db")
 
 	def get_qa_chain(self):
-		Chroma.get()
 		vec_database = Chroma(
 			embedding_function=self.embeddings,
 			persist_directory=vector_db_path,
@@ -88,27 +87,59 @@ class ChatWithPDF:
 	def ask_question(self, question_text):
 		reply = self.qa_chain({"query": question_text})
 		return reply
-	
-	def create_db_collection_manual(self, chunks: List[Document]):
+
+class ManualChatWithPDF(ChatWithPDF):
+	def create_db_collection(self):
 		persistent_client = chromadb.PersistentClient(path=vector_db_path)
-		collection = persistent_client.create_collection(f'{self.user_id}_collection')
-		
+		collection = persistent_client.create_collection(
+						   name=f'{self.user_id}_collection',
+						   embedding_function=self.embeddings)
 		all_data = {
 			"texts": [],
 			"metadatas": [],
 			"ids": []
 		}
-		for index, doc in enumerate(chunks):
+		for index, doc in enumerate(self.chunks):
 			all_data["texts"].append(doc.page_content)
-			doc.metadata['source'] = self.file_name
+			# doc.metadata['source'] = self.file_name
 			all_data["metadatas"].append(doc.metadata)
-			all_data["ids"].append(index)
+			all_data["ids"].append(str(index))
 		
 		collection.add(ids=all_data["ids"], 
 		 documents=all_data["texts"],
 		 metadatas=all_data["metadatas"],
 		 embeddings=self.embeddings)
+		logger.info(f"The file has been recorded to vec db")
+		persistent_client = None
 
+	def get_qa_chain(self):
+		persistent_client = chromadb.PersistentClient(path=vector_db_path)
+		# persistent_client.get_collection(
+		# 	collection_name=f'{self.user_id}_collection',
+		# 		embedding_function=self.embeddings)
+		
+		vec_database = Chroma(
+			embedding_function=self.embeddings,
+			persistent_client=persistent_client,
+			collection_name=f'{self.user_id}_collection',
+		)
+		self.retriever = vec_database.as_retriever(
+			search_type="similarity", search_kwargs={"k": 4}
+		)
+		template = """Use this information in order to answer the question. 
+				Context: {context}
+				Question: {question}
+				Your answer must be complete and consistent, but precise.
+			  Your answer must contain not more than 100 words"""
+		QA_PROMPT = PromptTemplate.from_template(template)
+
+		self.qa_chain = RetrievalQA.from_chain_type(
+			self.llm,
+			retriever=self.retriever,
+			chain_type_kwargs={"prompt": QA_PROMPT},
+			verbose=False,
+		)
+		logger.info("QA chain created")
 
 class Dialog:
 	def __init__(self, user_id):
@@ -118,11 +149,11 @@ class Dialog:
 	def load_document_to_vec_db(self, file_name, file_path):
 		self.chat.load_file(file_path=file_path, file_name=file_name)
 		self.chat.split_docs()
-		self.chat.create_db_collection_langchain()
-		return True
+		self.chat.create_db_collection()
 
 	def ask(self, query):
 		self.chat.get_qa_chain()
 		reply = self.chat.ask_question(query)
+		logger.info(f"Raw reply: {reply}")
 		logger.info("Question answered")
 		return reply["result"]
