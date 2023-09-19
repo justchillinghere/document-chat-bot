@@ -1,16 +1,34 @@
-1. Functional requirements for bot commands:
+# Telegram PDF Chat Bot
 
-   - /start – Starts the bot and shows the greeting
-   - /help – Shows the list of available commands
-   - /stop – Stops the bot
+## Table of Contents
 
-   - /file – accepts the file and parse its contents in langchain
-   - /lang – shows the list of supported languages
-   - /question – accepts a question for the downloaded pdf file. Responds with information from the pdf
-   - /end_conversation – ends conversation with the file
+1. [Introduction](#introduction)
+2. [Usage](#usage)
+3. [Commands](#commands)
+4. [Example] (#example)
 
-2. Rules of usage:
-   - After the start the user information is saved in the database
-   - When user uploads file, the program stores the embedigns of the user in the database until next file upload or bot stop
-   - The maximum file size is 5 Mb now
-   - Now only english version is supported (for stability)
+---
+
+## Introduction
+
+Welcome to the Telegram Document Chat bot repository! This bot allows you to upload PDF files and interact with the content through a chat interface. Have a question about the document you just uploaded? Just ask!
+
+---
+
+## Usage
+
+1. Start a new conversation with the bot by sending the `/start` command.
+2. Upload a PDF file that you want to interact with.
+3. Use the `/ask` command to ask questions about the uploaded document.
+
+---
+
+## Commands
+
+- `/start` - Begins a new conversation and provides instructions.
+- `/ask [Your Question]` - Asks a question about the uploaded PDF document.
+
+### Example of usage
+
+
+![Usage Screenshot](./usage_example.png)
