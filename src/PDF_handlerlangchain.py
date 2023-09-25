@@ -95,61 +95,7 @@ class ChatWithPDF:
 		reply = self.qa_chain({"query": question_text})
 		return reply
 
-class ManualChatWithPDF(ChatWithPDF):
-	def create_db_collection(self):
-		persistent_client = chromadb.PersistentClient(path=vector_db_path)
-		collection = persistent_client.create_collection(
-						   name=f'{self.user_id}_collection',
-						   embedding_function=self.embeddings)
-		all_data = {
-			"texts": [],
-			"metadatas": [],
-			"ids": []
-		}
-		for index, doc in enumerate(self.chunks):
-			all_data["texts"].append(doc.page_content)
-			# doc.metadata['source'] = self.file_name
-			all_data["metadatas"].append(doc.metadata)
-			all_data["ids"].append(str(index))
-		
-		collection.add(ids=all_data["ids"], 
-		 documents=all_data["texts"],
-		 metadatas=all_data["metadatas"],
-		 embeddings=self.embeddings)
-		logger.info(f"The file has been recorded to vec db")
-		persistent_client = None
 
-	def get_qa_chain(self):
-		persistent_client = chromadb.PersistentClient(path=vector_db_path)
-		# persistent_client.get_collection(
-		# 	collection_name=f'{self.user_id}_collection',
-		# 		embedding_function=self.embeddings)
-		
-		vec_database = Chroma(
-			embedding_function=self.embeddings,
-			persistent_client=persistent_client,
-			collection_name=f'{self.user_id}_collection',
-		)
-		self.retriever = vec_database.as_retriever(
-			search_type="similarity", search_kwargs={"k": 4}
-		)
-		template = """Use this information in order to answer the question. 
-				Context: {context}
-				Question: {question}
-				Figure out the language in this question 
-				and build your reply in this language
-				Your answer must be complete and consistent.
-			  Your answer must contain at least 100 words"""
-		
-		QA_PROMPT = PromptTemplate.from_template(template)
-
-		self.qa_chain = RetrievalQA.from_chain_type(
-			self.llm,
-			retriever=self.retriever,
-			chain_type_kwargs={"prompt": QA_PROMPT},
-			verbose=False,
-		)
-		logger.info("QA chain created")
 
 class Dialog:
 	def __init__(self, user_id):
