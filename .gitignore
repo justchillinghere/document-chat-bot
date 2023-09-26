@@ -1,4 +1,5 @@
 .env
 .DS_Store
 .vscode
+.idea
 vector_db
