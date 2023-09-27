@@ -1,4 +1,4 @@
-from PDF_handlerlangchain import Dialog
+from data_processing.PDF_handlerlangchain import Dialog
 
 async def ask(update, context):
 	question_to_ask = update.message.text

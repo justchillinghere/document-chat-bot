@@ -4,7 +4,7 @@ import typing
 from langchain.document_loaders import PyPDFLoader
 from error_handler import logger
 
-from PDF_handlerlangchain import Dialog
+from data_processing.PDF_handlerlangchain import Dialog
 
 async def add_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> File | None:
 	logger.info("Checking file format...")

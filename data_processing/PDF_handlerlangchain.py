@@ -16,7 +16,7 @@ from langchain.prompts import PromptTemplate
 from langchain.docstore.document import Document
 from langchain.prompts import ChatPromptTemplate
 
-from error_handler import logger
+from bot_logger import logger
 
 warnings.filterwarnings("ignore")
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # TO SURPRESS Tensorflow warnings
@@ -35,15 +35,13 @@ class ChatWithPDF:
 		self.llm = OpenAI(temperature=0.2, openai_api_key=api_key, max_tokens=1000)
 		self.embeddings = OpenAIEmbeddings(openai_api_key=api_key)
 		self.user_id = user_tg_id
-
-	def load_file(self, file_path: str, file_name: str):
-		self.chunks = PyPDFLoader(file_path).load()
-
-		# Change filename in metadata from temporary to actual one
-		for i in range(len(self.chunks)):
-			self.chunks[i].metadata['source'] = file_name
+	
+	def load_file(self, file_paths: List[str]):
+		self.chunks = []
+		for i in range(len(file_paths)):
+			self.chunks.extend(PyPDFLoader(file_paths[i]).load())
+		logger.info(f"Read files from user")
 		
-		logger.info(f"Read {file_name} file from {file_path}")
 
 	def split_docs(self, chunk_size:int=1000, chunk_overlap:int=100):	
 		token_splitter = TokenTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
@@ -102,8 +100,8 @@ class Dialog:
 		# initialize chat
 		self.chat = ChatWithPDF(user_id, api_key=OPENAI_API_KEY)
 
-	def load_document_to_vec_db(self, file_name, file_path):
-		self.chat.load_file(file_path=file_path, file_name=file_name)
+	def load_documents_to_vec_db(self, file_path):
+		self.chat.load_files(file_path=file_path)
 		self.chat.split_docs()
 		self.chat.create_db_collection()
 
