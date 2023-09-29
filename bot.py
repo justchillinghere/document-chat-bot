@@ -5,10 +5,10 @@ from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from handlers import common, new_collection
+from models.base import init_db
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-
 
 async def main():
 	logging.basicConfig(
@@ -27,4 +27,5 @@ async def main():
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
+	init_db()
+	asyncio.run(main())

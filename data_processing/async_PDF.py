@@ -62,7 +62,7 @@ class ChatWithPDF:
             self.vec_database = Chroma(
                 embedding_function=self.embeddings,
                 persist_directory=vector_db_path,
-                collection_name=f'{self.user_id}_collection',
+                collection_name=f'{self.user_id}_collection_{uuid4()}',
             )
         self.retriever = self.vec_database.as_retriever(
             search_type="mmr", search_kwargs={"k": 4}
